@@ -19,5 +19,5 @@ def view_permission_list(request):
         or allowed_query_pks(request.user.id)
 
 
-def change_permission(request, *args, **kwargs):
+def change_permission(request):
     return app_settings.EXPLORER_PERMISSION_CHANGE(request.user)

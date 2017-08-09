@@ -37,8 +37,11 @@ class BaseExporter(object):
             return str(value)
 
     def get_file_output(self, **kwargs):
-        res = self.query.execute_query_only()
-        return self._get_output(res, **kwargs)
+        try:
+            res = self.query.execute_query_only()
+            return self._get_output(res, **kwargs)
+        except DatabaseError as e:
+            return StringIO(str(e))
 
     def _get_output(self, res, **kwargs):
         """
@@ -104,7 +107,7 @@ class ExcelExporter(BaseExporter):
         import xlsxwriter
         output = BytesIO()
 
-        wb = xlsxwriter.Workbook(output, {'in_memory': True})
+        wb = xlsxwriter.Workbook(output)
 
         # XLSX writer wont allow sheet names > 31 characters
         # https://github.com/jmcnamara/XlsxWriter/blob/master/xlsxwriter/test/workbook/test_check_sheetname.py
@@ -138,3 +141,22 @@ class ExcelExporter(BaseExporter):
 
         wb.close()
         return output
+
+
+class PdfExporter(BaseExporter):
+
+    name = 'PDF'
+    content_type = 'application/pdf'
+    file_extension = '.pdf'
+
+    def _get_output(self, res, **kwargs):
+        from django_xhtml2pdf.utils import generate_pdf
+        output = BytesIO()
+        
+        ctx = {
+            'headers': res.header_strings,
+            'data': res.data,
+        }
+        result = generate_pdf('explorer/pdf_template.html', file_object=output, context=ctx)
+        return output
+
